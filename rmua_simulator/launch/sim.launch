@@ -1,0 +1,34 @@
+<launch>
+  <rosparam command="load" file="$(find rmua_simulator)/config/params.yaml"/>
+  <node pkg="rmua_simulator" type="console.py" name="console" output="log"/>
+  <!-- <node pkg="joy" type="joy_node" name="joy_node" output="log"/>   -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find rmua_simulator)/rviz/rviz.rviz" output="log"/>
+  <node pkg="rmua_simulator" type="map_manager" name="map_manager" output="log"/>
+  <node pkg="rmua_simulator" type="simulator" name="simulator0" output="log">
+    <param name="agent_id" value="0" />
+    <param name="human_control" value="true" />
+    <param name="max_vel" value="2.0" />
+    <param name="max_yaw" value="4.0" />
+    <param name="x" value="0.5" />
+    <param name="y" value="0.5" />
+    <param name="a" value="0.0" />
+  </node>
+  <node pkg="rmua_simulator" type="simulator" name="simulator1" output="log">
+    <param name="agent_id" value="1" />
+    <param name="x" value="0.5" />
+    <param name="y" value="4" />
+    <param name="a" value="0.0" />
+  </node>
+  <node pkg="rmua_simulator" type="simulator" name="simulator2" output="log">
+    <param name="agent_id" value="2" />
+    <param name="x" value="7.5" />
+    <param name="y" value="0.57" />
+    <param name="a" value="180.0" />
+  </node>
+  <node pkg="rmua_simulator" type="simulator" name="simulator3" output="log">
+    <param name="agent_id" value="3" />
+    <param name="x" value="7.5" />
+    <param name="y" value="4.0" />
+    <param name="a" value="180.0" />
+  </node>
+</launch>

@@ -1,0 +1,134 @@
+GridMap:
+  frame_id: "map"
+  resolution: 0.05
+  length: 8.08 #axis x
+  width: 4.48 #axis y
+  dilate_radius: 0.42
+Polygons: 
+  -
+    polygon:
+      -
+        x: 0.0
+        y: 5.0
+      -
+        x: 0.0
+        y: 10.0
+      -
+        x: 1.5
+        y: 10.0  
+  -
+    polygon:
+      -
+        x: 3.5
+        y: 0.0
+      -
+        x: 5.0
+        y: 5.0
+      -
+        x: 5.0
+        y: 0.0  
+Rectangles: 
+  -
+    rectangle:
+        x: 7.58
+        y: 1.1
+        a: 0.0
+        l: 1.0
+        w: 0.2
+        h: 0.4
+  -
+    rectangle:
+        x: 6.18
+        y: 2.24
+        a: 0.0
+        l: 0.8
+        w: 0.2
+        h: 0.15
+  -
+    rectangle:
+        x: 6.48
+        y: 3.98
+        a: 90.0
+        l: 1.0
+        w: 0.2  
+        h: 0.4   
+  -
+    rectangle:
+        x: 4.04
+        y: 1.035
+        a: 0.0
+        l: 1.0
+        w: 0.2      
+        h: 0.4 
+  -
+    rectangle:
+        x: 4.04
+        y: 2.24
+        a: 45.0
+        l: 0.25
+        w: 0.25
+        h: 0.15
+  -
+    rectangle:
+        x: 4.04
+        y: 3.45
+        a: 0.0
+        l: 1.0
+        w: 0.2 
+        h: 0.4
+  -
+    rectangle:
+        x: 1.6
+        y: 0.5
+        a: 90.0
+        l: 1.0
+        w: 0.2 
+        h: 0.4
+  -
+    rectangle:
+        x: 1.9
+        y: 2.24
+        a: 0.0
+        l: 0.8
+        w: 0.2
+        h: 0.15
+  -
+    rectangle:
+        x: 0.5
+        y: 3.38
+        a: 0.0
+        l: 1.0
+        w: 0.2
+        h: 0.4
+  -
+    rectangle:
+        x: 4.04
+        y: -0.15
+        a: 0.0
+        l: 8.68
+        w: 0.3
+        h: 0.2
+  -
+    rectangle:
+        x: 4.04
+        y: 4.63
+        a: 0.0
+        l: 8.68
+        w: 0.3
+        h: 0.2
+  -
+    rectangle:
+        x: -0.15
+        y: 2.24
+        a: 0.0
+        l: 0.3
+        w: 5.08
+        h: 0.2
+  -
+    rectangle:
+        x: 8.23
+        y: 2.24
+        a: 0.0
+        l: 0.3
+        w: 5.08
+        h: 0.2

@@ -1,0 +1,3 @@
+# RMUA SIM
+
+catkin_make -DCMAKE_EXPORT_COMPILE_COMMANDS=Yes -j16

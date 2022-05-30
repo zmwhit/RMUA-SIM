@@ -1,0 +1,16 @@
+length: 0.6
+width: 0.5
+height: 0.4
+
+max_speed: 10.0 
+max_accel: 5.0 
+max_decel: -5.0 
+max_jerk: 10.0
+max_omega: 3
+max_omega_accel: 6 
+
+buffer_length: 5
+update_pose_rate: 2000
+ttc: 0.05
+
+show_mesh: 1
