@@ -226,7 +226,6 @@ void Visualization::Clear() {
     vis_pub.publish(arr);
     arr.markers.clear();
     mutex.unlock();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 void Visualization::Add(visualization_msgs::Marker& msg) {
     mutex.lock();
