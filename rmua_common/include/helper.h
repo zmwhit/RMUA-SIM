@@ -12,8 +12,8 @@
 
 #include "CSVWriter.h"
 namespace Helper {
-static std::string default_csv_path = "/home/zmw/motion_planning/RMUASimulator/src/rmua_planning/scripts/data";
-static std::string default_pic_path = "/home/zmw/motion_planning/RMUASimulator/src/rmua_planning/scripts/pic";
+static std::string default_csv_path = "/tmp";
+static std::string default_pic_path = "/tmp";
 
 double NormalizeAngle(const double angle);
 double WrapAngle(const double angle);
