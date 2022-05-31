@@ -101,12 +101,6 @@ bool PathSmoother::Optimize(const std::vector<geometry_msgs::PoseStamped> &path)
     n = path.size();
     if (n <= 2) {
         return false;
-    } else if (n > 2 && n <= 4) {
-        opti_path.resize(n);
-        for (int i = 0; i < n; ++i) 
-            opti_path[i] = Eigen::Vector2d(path[i].pose.position.x, 
-                                           path[i].pose.position.y);
-        return true;
     }
     std::vector<std::vector<double>> ref_xy;
     for (int i = 0; i < n; ++i) {

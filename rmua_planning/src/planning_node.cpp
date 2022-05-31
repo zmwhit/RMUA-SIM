@@ -167,8 +167,8 @@ int main(int argc, char **argv) {
     double speed_acc_opti_w_v = 5.0;
     double speed_acc_opti_w_a = 0.01;
 
-    double speed_dec_opti_w_s = 10.0;
-    double speed_dec_opti_w_v = 1.0;
+    double speed_dec_opti_w_s = 2.0;
+    double speed_dec_opti_w_v = 0.1;
     double speed_dec_opti_w_a = 0.01;
     Eigen::Vector3d speed_w1(speed_acc_opti_w_s, speed_acc_opti_w_v, speed_acc_opti_w_a);
     Eigen::Vector3d speed_w2(speed_dec_opti_w_s, speed_dec_opti_w_v, speed_dec_opti_w_a);
