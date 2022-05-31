@@ -1,0 +1,30 @@
+Log file created at: 2022/05/31 09:36:50
+Running on machine: zmw
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E0531 09:36:50.610328 28245 planning_node.cpp:257] path optimize fail
+E0531 09:36:52.935314 28245 planning_node.cpp:257] path optimize fail
+E0531 09:36:54.985322 28245 planning_node.cpp:257] path optimize fail
+E0531 09:36:57.935312 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:00.610312 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:02.310312 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:04.685318 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:08.185317 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:10.835317 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:13.560329 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:17.010316 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:19.685318 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:22.585314 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:25.635310 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:27.835325 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:30.185315 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:32.960319 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:35.835387 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:38.160326 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:42.335311 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:48.410313 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:50.510314 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:52.710320 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:55.060317 28245 planning_node.cpp:257] path optimize fail
+E0531 09:37:57.935317 28245 planning_node.cpp:257] path optimize fail
+E0531 09:38:00.110314 28245 planning_node.cpp:257] path optimize fail
+E0531 09:38:02.510313 28245 planning_node.cpp:257] path optimize fail

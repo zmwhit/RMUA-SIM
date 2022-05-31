@@ -17,6 +17,9 @@
 #include "path_smoother.h"
 #include "speed_optimizer.h"
 #include "nlp_planner.h"
+
+#include "glog/logging.h"
+#include "gflags/gflags.h"
 ros::Publisher cmd_vel_pub_ ;
 
 enum FSM_STATE { INIT, WAIT_TARGET, SEARCH_GLOBAL, REPLAN_TRAJECTORY, STOP };
@@ -124,34 +127,46 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "planning");
     ros::NodeHandle nh("~");
 
-    std::string path = ros::package::getPath("rmua_planning")+"/scripts";
-    Helper::default_pic_path = path +"/pic";
-    Helper::default_csv_path = path +"/data";
+    std::string path = ros::package::getPath("rmua_planning");
+    Helper::default_pic_path = path +"/scripts/pic";
+    Helper::default_csv_path = path +"/scripts/data";
+    std::string pos_topic = "/robot_0/position";
+    std::string odom_topic = "/robot_0/odom";
+    std::string control_topic = "/robot_0/cmd_vel";
+
+
+    google::InitGoogleLogging(argv[0]);
+    FLAGS_colorlogtostderr = true;
+    FLAGS_stderrthreshold = google::INFO;
+    FLAGS_log_dir = path + "/log";
+    FLAGS_logbufsecs = 0;
+    FLAGS_max_log_size = 100;
+    FLAGS_stop_logging_if_full_disk = true;
 
     double speed_rate = 200;
     double control_pub_rate = 1000;
     double goal_dist_tol = 0.2;
     double goal_vel_tol = 0.2;
     int progress = 0;
-    double plan_rate = 20;
+    double plan_rate = 40;
 
-    double path_opti_w_smooth = 1.0;
+    double path_opti_w_smooth = 5.0;
     double path_opti_w_ref = 1.0;
-    double path_opti_w_length = 10.0;
+    double path_opti_w_length = 5.0;
     double path_opti_xy_bound = 0.1;
     Eigen::Vector3d path_w(path_opti_w_smooth, path_opti_w_ref, path_opti_w_length);
-    double plan_target_vel = 3.0;
+    double plan_target_vel = 2.5;
     double plan_max_accel = 6.0;
     double plan_max_vel = 3.0;
     double plan_horizon = plan_max_vel/plan_max_accel*2;
 
-    double speed_acc_opti_w_s = 5.0;
-    double speed_acc_opti_w_v = 1.0;
-    double speed_acc_opti_w_a = 0.1;
+    double speed_acc_opti_w_s = 1.0;
+    double speed_acc_opti_w_v = 2.0;
+    double speed_acc_opti_w_a = 0.01;
 
     double speed_dec_opti_w_s = 1.0;
     double speed_dec_opti_w_v = 0.01;
-    double speed_dec_opti_w_a = 0.1;
+    double speed_dec_opti_w_a = 0.05;
     Eigen::Vector3d speed_w1(speed_acc_opti_w_s, speed_acc_opti_w_v, speed_acc_opti_w_a);
     Eigen::Vector3d speed_w2(speed_dec_opti_w_s, speed_dec_opti_w_v, speed_dec_opti_w_a);
 
@@ -164,11 +179,11 @@ int main(int argc, char **argv) {
     ros::Subscriber static_map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/static_map", 1, &StaticMapCallBack);
     ros::Subscriber goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &goalCallBack);
     ros::Subscriber click_point_sub_ = nh.subscribe<geometry_msgs::PointStamped>("/clicked_point", 1, &ClickPointCallBack);
-    ros::Subscriber pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/robot_0/position", 1, &PoseCallBack);
-    ros::Subscriber odom_sub_ = nh.subscribe<nav_msgs::Odometry>("/robot_0/odom", 1, &OdomCallBack);
+    ros::Subscriber pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>(pos_topic, 1, &PoseCallBack);
+    ros::Subscriber odom_sub_ = nh.subscribe<nav_msgs::Odometry>(odom_topic, 1, &OdomCallBack);
     ros::Timer speed_timer_ = nh.createTimer(ros::Duration(1.0/speed_rate), boost::bind(&SpeedTrackTimer));
     ros::Timer control_pub_timer_ = nh.createTimer(ros::Duration(1.0/control_pub_rate), boost::bind(&ControlPubTimer));
-    cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
+    cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>(control_topic, 1);
     wait_for_messages(1.0);
 
     visualize.Init(nh, "vis");
@@ -178,17 +193,18 @@ int main(int argc, char **argv) {
     PathSmoother path_smoother(path_w, path_opti_xy_bound);
     SpeedOptimizer speed_optimizer(speed_w1, speed_w2, plan_max_vel, plan_max_accel);
     
-
+    LOG(INFO) << "begin planning";
     ros::Rate rate(plan_rate);
     while (ros::ok()) { 
         if (task_state == FSM_STATE::SEARCH_GLOBAL) {
+            path_search.UpdateMap(grid_map);
             path_search.Plan(current_pose, goal_pose, global_path);   
             progress = 0;
             if (global_path.size() > 2) {
-                dbg("start planning");
+                LOG(INFO) << "find global path";
                 task_state = FSM_STATE::REPLAN_TRAJECTORY;
             } else {
-                dbg("goal is too short");
+                LOG(WARNING) << "goal is too short";
                 task_state = FSM_STATE::STOP;
             }
         }
@@ -196,7 +212,7 @@ int main(int argc, char **argv) {
             double curr_speed = std::hypot(current_odom.twist.twist.linear.x, current_odom.twist.twist.linear.y);
             if (Helper::getDistance(current_pose, goal_pose) < goal_dist_tol &&
                 curr_speed < goal_vel_tol) {
-                dbg("reach goal tol");
+                LOG(INFO) << "reach goal tol";
                 task_state = FSM_STATE::STOP;
             } else {
                 if (use_teb) {
@@ -211,11 +227,11 @@ int main(int argc, char **argv) {
                             double theta = tf::getYaw(current_pose.pose.orientation);
                             SetControlSpeed(vx, vy, ax, ay, theta);                        
                         } else {
-                            dbg("teb optimize fail");
+                            LOG(ERROR) << "teb optimize fail";
                             task_state = FSM_STATE::STOP;
                         }                        
                     } else {
-                        dbg("teb init fail");
+                        LOG(ERROR) << "teb init fail";
                         task_state = FSM_STATE::STOP;
                     }
                 } else {
@@ -230,15 +246,15 @@ int main(int argc, char **argv) {
                                 double theta = tf::getYaw(current_pose.pose.orientation);
                                 SetControlSpeed(control(0), control(1), control(2), control(3), theta);
                             } else {
-                                dbg("speed optimize fail");
+                                LOG(ERROR) << "speed optimize fail";
                                 task_state = FSM_STATE::STOP;         
                             }           
                         } else {
-                            dbg("speed init fail");
+                            LOG(ERROR) << "speed init fail";
                             task_state = FSM_STATE::STOP;
                         }
                     } else {
-                        dbg("path optimize fail");
+                        LOG(ERROR) << "path optimize fail";
                         task_state = FSM_STATE::STOP;
                     }                    
                 }
@@ -254,7 +270,7 @@ int main(int argc, char **argv) {
         }
         if (task_state == FSM_STATE::WAIT_TARGET) {
             ResetControl();
-            dbg("wait for target");
+            LOG(INFO) << "wait for target";
             if (random_walk) {
                 double x, y;
                 int map_x, map_y;
@@ -289,5 +305,7 @@ int main(int argc, char **argv) {
         ros::spinOnce();
         rate.sleep(); 
     }
+
+    google::ShutdownGoogleLogging();
     return 0;
 }

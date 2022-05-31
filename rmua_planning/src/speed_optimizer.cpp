@@ -49,14 +49,9 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     //优化点数量
     n = t/dt + 1;
     if (n >= n_left) {
-        dbg("speed plan to stop the car");
         stop = true;
-        // n_send = std::max(0, n_left - 1);
-        n_send = n - 1;
     } else {
-        dbg("speed plan to progress the car");
         stop = false;
-        n_send = n - 1;
     }
     double delta_s = 1.0/(n - 1);
     std::vector<double> x_list(n), y_list(n), theta_list(n);

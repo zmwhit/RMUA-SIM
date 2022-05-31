@@ -11,6 +11,7 @@
 #include "ros_headers.h"
 #include "teb_local_planner/teb_planner.h"
 
+#include "dbg.h"
 class NlpPlanner {
 public:
     NlpPlanner() = default;

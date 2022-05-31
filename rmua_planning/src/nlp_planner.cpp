@@ -107,7 +107,6 @@ void NlpPlanner::SetObstacles() {
         }
     }
     double teb_handle_obs_num = static_obs.size();
-    dbg(teb_handle_obs_num);
 }
 bool NlpPlanner::OptimizeNLP() { 
     double t1 = std::clock();

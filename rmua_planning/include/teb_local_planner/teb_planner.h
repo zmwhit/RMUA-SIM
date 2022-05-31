@@ -70,8 +70,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/thread/once.hpp>
-
-#include "dbg.h"
 namespace teb_local_planner
 {
 

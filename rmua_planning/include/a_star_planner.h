@@ -39,6 +39,7 @@ public:
             std::vector<geometry_msgs::PoseStamped> &path);
   bool World2Map(const double x, const double y, int& x_, int& y_);
   int GetCost(const int x, const int y);
+  void UpdateMap(const nav_msgs::OccupancyGrid& map);
 private:
  bool CheckBound(const int x, const int y);
  bool Map2World(const int x, const int y, double& x_, double& y_);

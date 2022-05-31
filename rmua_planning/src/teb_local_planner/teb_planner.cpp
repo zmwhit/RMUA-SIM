@@ -1210,7 +1210,6 @@ void TebOptimalPlanner::computeCurrentCost(double obst_cost_scale, double viapoi
     }
     teb_g2o_cost += cur_cost;
   }
-  dbg(teb_g2o_cost);
   // delete temporary created graph
   // if (!graph_exist_flag) 
   //   clearGraph();

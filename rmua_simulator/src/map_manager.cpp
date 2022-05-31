@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     wall.scale.y = static_map.info.resolution*1.1;
     wall.scale.z = static_map.info.resolution*1.1;
     wall.color.a = 1.0;
-    wall.color.r = wall.color.g = wall.color.b = 1.0/4;
+    wall.color.r = wall.color.g = wall.color.b = 0.3;
     wall.pose = static_map.info.origin;
     cnt = 0;
     geometry_msgs::Point p;

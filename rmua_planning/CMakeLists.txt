@@ -24,6 +24,7 @@ find_package(osqp REQUIRED)
 find_package(OsqpEigen REQUIRED)
 find_package(G2O REQUIRED)
 find_package(SUITESPARSE REQUIRED)
+find_package(gflags REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -48,6 +49,9 @@ set(EXTERNAL_LIBS
   OsqpEigen::OsqpEigen
   ${G2O_LIBRARIES}
   ${SUITESPARSE_LIBRARIES}
+
+  glog
+  gflags
 )
 set(SRC_LIST
   src/planning_node.cpp

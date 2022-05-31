@@ -18,19 +18,21 @@
 #include "a_star_planner.h"
 
 AStarPlanner::AStarPlanner(const nav_msgs::OccupancyGrid& map) {
+    inaccessible_cost_ = 100;
+    goal_search_tolerance_ = 1;
+    UpdateMap(map);
+}
+
+AStarPlanner::~AStarPlanner(){
+    cost_ = nullptr;
+}
+
+void AStarPlanner::UpdateMap(const nav_msgs::OccupancyGrid& map) {
     map_ = map;
     cost_ = map_.data.data();
     res_ = map_.info.resolution;
     gridmap_height_ = map_.info.height;
     gridmap_width_ = map_.info.width;
-
-
-    inaccessible_cost_ = 100;
-    goal_search_tolerance_ = 1;
-}
-
-AStarPlanner::~AStarPlanner(){
-    cost_ = nullptr;
 }
 bool AStarPlanner::CheckBound(const int x, const int y) {
     if (x < 0 || x >= gridmap_width_ || y < 0 || y >= gridmap_height_) 
