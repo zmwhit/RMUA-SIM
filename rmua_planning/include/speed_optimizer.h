@@ -43,7 +43,7 @@ private:
     double theta0;
     double t;
     double dt;
-    double target_v;
+    double target_v, target_a;
     std::vector<Eigen::Vector3d> init_traj;
     std::vector<Eigen::Vector3d> opti_traj;
     double acc_opti_w_v;

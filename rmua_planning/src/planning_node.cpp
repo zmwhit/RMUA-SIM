@@ -45,7 +45,7 @@ void MapCallBack(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
 void StaticMapCallBack(const nav_msgs::OccupancyGrid::ConstPtr& msg) {
     static_map = (*msg);
 }
-void goalCallBack(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+void GoalCallBack(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     goal_pose = *msg;
     target_angle = tf::getYaw(goal_pose.pose.orientation);
     dbg("recieve a new goal");
@@ -55,6 +55,9 @@ void ClickPointCallBack(const geometry_msgs::PointStamped::ConstPtr& msg) {
     goal_pose.pose.position.x = (*msg).point.x;
     goal_pose.pose.position.y = (*msg).point.y;
     goal_pose.pose.orientation.w = 1.0;
+    target_angle = tf::getYaw(goal_pose.pose.orientation);
+    dbg("recieve a new goal");
+    task_state = FSM_STATE::SEARCH_GLOBAL;
 }
 void PoseCallBack(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     current_pose = *msg;
@@ -151,7 +154,7 @@ int main(int argc, char **argv) {
     double plan_rate = 40;
 
     double path_opti_w_smooth = 5.0;
-    double path_opti_w_ref = 1.0;
+    double path_opti_w_ref = 0.5;
     double path_opti_w_length = 5.0;
     double path_opti_xy_bound = 0.1;
     Eigen::Vector3d path_w(path_opti_w_smooth, path_opti_w_ref, path_opti_w_length);
@@ -160,31 +163,31 @@ int main(int argc, char **argv) {
     double plan_max_vel = 3.0;
     double plan_horizon = plan_max_vel/plan_max_accel*2;
 
-    double speed_acc_opti_w_s = 1.0;
-    double speed_acc_opti_w_v = 2.0;
+    double speed_acc_opti_w_s = 0.1;
+    double speed_acc_opti_w_v = 5.0;
     double speed_acc_opti_w_a = 0.01;
 
-    double speed_dec_opti_w_s = 1.0;
-    double speed_dec_opti_w_v = 0.01;
-    double speed_dec_opti_w_a = 0.05;
+    double speed_dec_opti_w_s = 10.0;
+    double speed_dec_opti_w_v = 1.0;
+    double speed_dec_opti_w_a = 0.01;
     Eigen::Vector3d speed_w1(speed_acc_opti_w_s, speed_acc_opti_w_v, speed_acc_opti_w_a);
     Eigen::Vector3d speed_w2(speed_dec_opti_w_s, speed_dec_opti_w_v, speed_dec_opti_w_a);
 
-    pos_kp = 1.0;
+    pos_kp = 2.0;
     ang_kp = 2.0;
 
     bool random_walk = true;
     bool use_teb = false;
     ros::Subscriber map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/dynamic_map", 1, &MapCallBack);
     ros::Subscriber static_map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/static_map", 1, &StaticMapCallBack);
-    ros::Subscriber goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &goalCallBack);
+    ros::Subscriber goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &GoalCallBack);
     ros::Subscriber click_point_sub_ = nh.subscribe<geometry_msgs::PointStamped>("/clicked_point", 1, &ClickPointCallBack);
     ros::Subscriber pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>(pos_topic, 1, &PoseCallBack);
     ros::Subscriber odom_sub_ = nh.subscribe<nav_msgs::Odometry>(odom_topic, 1, &OdomCallBack);
     ros::Timer speed_timer_ = nh.createTimer(ros::Duration(1.0/speed_rate), boost::bind(&SpeedTrackTimer));
     ros::Timer control_pub_timer_ = nh.createTimer(ros::Duration(1.0/control_pub_rate), boost::bind(&ControlPubTimer));
     cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>(control_topic, 1);
-    wait_for_messages(1.0);
+    wait_for_messages(0.5);
 
     visualize.Init(nh, "vis");
 

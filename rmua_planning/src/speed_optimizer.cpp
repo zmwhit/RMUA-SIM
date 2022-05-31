@@ -48,11 +48,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     dt = plan_dt;
     //优化点数量
     n = t/dt + 1;
-    if (n >= n_left) {
-        stop = true;
-    } else {
-        stop = false;
-    }
+    //B样条采样
     double delta_s = 1.0/(n - 1);
     std::vector<double> x_list(n), y_list(n), theta_list(n);
     for (int i = 0; i < n; ++i) {
@@ -72,8 +68,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
         max_s += std::hypot(x_list[i+1] - x_list[i], y_list[i+1] - y_list[i]);
         s_list.emplace_back(max_s);
     }
-    //路径的切线方向
-    theta0 = theta_list[0];
+
     //车体坐标系下的vx和vy
     double vx0_ = odom.twist.twist.linear.x;
     double vy0_ = odom.twist.twist.linear.y;
@@ -81,10 +76,27 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     double theta = tf::getYaw(current_point.pose.orientation);
     double vx0 = vx0_*std::cos(theta) - vy0_*std::sin(theta);
     double vy0 = vx0_*std::sin(theta) + vy0_*std::cos(theta);
+    //路径的切线方向
+    theta0 = theta_list[0];
     //地图坐标系下的速度在路径切线上的投影速度vx, global2local
     init_v = std::min(max_v, std::max(vx0*std::cos(theta0) + vy0*std::sin(theta0), 0.0));
-    //期望速度
-    target_v = plan_v;
+
+    double stop_s;
+    if (init_v < plan_v) {
+        stop_s = (plan_v*plan_v)/(2*max_a) + (plan_v*plan_v - init_v*init_v)/(2*max_a);
+    } else {
+        stop_s = (init_v*init_v)/(2*max_a);
+    }
+    if (max_s <= stop_s) {
+        stop = true;
+        target_v = 0;
+        target_a = -max_a;
+    } else {
+        stop = false;
+        target_v = plan_v;
+        target_a = max_a;
+    }
+    
     for (int i = 0; i < n; ++i) {
         init_traj.emplace_back(s_list[i], target_v, 0.0);
     }
