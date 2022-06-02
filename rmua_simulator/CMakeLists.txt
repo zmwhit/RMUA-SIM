@@ -34,6 +34,7 @@ add_executable(simulator
   src/gimbal_kinematic.cpp
 )
 target_link_libraries(simulator
+  yaml-cpp  
   rmua_common
   ${catkin_LIBRARIES}
 )

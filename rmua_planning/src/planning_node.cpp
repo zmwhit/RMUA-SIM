@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     double control_pub_rate = 1000;
     double goal_dist_tol = 0.1;
     double goal_vel_tol = 0.1;
-    double plan_rate = 50;
+    double plan_rate = 40;
 
     double path_opti_w_smooth = 10.0;
     double path_opti_w_ref = 0.5;
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
     double speed_acc_opti_w_v = 2.5;
     double speed_acc_opti_w_a = 0.01;
 
-    double speed_dec_opti_w_s = 2.5;
+    double speed_dec_opti_w_s = 3.0;
     double speed_dec_opti_w_v = 0.1;
     double speed_dec_opti_w_a = 0.01;
     Eigen::Vector3d speed_w1(speed_acc_opti_w_s, speed_acc_opti_w_v, speed_acc_opti_w_a);

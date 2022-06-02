@@ -2,15 +2,18 @@
 #include <vector>
 #include <math.h>
 #include <memory>
+#include <string>
 
 #include <Eigen/Eigen>
 #include <Eigen/Core>
 
 #include "ros_headers.h"
+#include <yaml-cpp/yaml.h>
 
 #include "chassis_kinematic.h"
 #include "gimbal_kinematic.h"
 #include "visualization/visualization.h"
+#include "math/polygon2d.h"
 using namespace std;
 
 ros::Subscriber pos_sub_, odom_sub_, joy_sub_, map_sub_, ctrl_sub_, init_pos_sub_;
@@ -28,8 +31,8 @@ double joy_vel_coeff = 2.0;
 double joy_omega_coeff = 2.0;
 
 double length = 0.6;
-double width = 0.45;
-double height = 0.2;
+double width = 0.5;
+double height = 0.5;
 vector<geometry_msgs::PoseStamped> history_trajectory;
 int history_buff_size = 20;
 int history_buff_ptr = 0;
@@ -38,6 +41,8 @@ std::unique_ptr<GimbalKinematic> shoot_phy_sim;
 double init_x, init_y, init_a;
 int control_id = -1;
 int show_mesh = 0;
+std::vector<math::Polygon2d> static_obs;
+int enable_collision_check;
 void visualization_sim() {
     std::vector<std::vector<double>> points_list_triangle = {{0, width/2}, {0, -width/2}, {length/2, 0}};                                 
     visualization_msgs::Marker marker;
@@ -121,6 +126,25 @@ void poseCallBack(const nav_msgs::Odometry::ConstPtr& msg) {
         history_pub_.publish(path);
     }
     visualization_sim();
+
+    if (enable_collision_check) {
+        math::Vec2d p(current_pose.pose.position.x, current_pose.pose.position.y);
+        double a = tf::getYaw(current_pose.pose.orientation);
+        std::vector<math::Vec2d> points{{length/2, width/2}, {-length/2, width/2}, {-length/2, -width/2}, {length/2, -width/2}};
+        for (int j = 0; j < 4; ++j) {
+            points[j] = points[j].rotate(a) + p;
+        }
+        math::Polygon2d car(points);
+        for (int i = 0; i < static_obs.size(); ++i) {
+            if (static_obs[i].DistanceTo(car) < math::kMathEpsilon) {
+                ctrl_command.linear.x = 0;
+                ctrl_command.linear.y = 0;
+                ctrl_command.angular.z = 0;
+                car_phy_sim->set_control_input(ctrl_command);
+                break;
+            }
+        }
+    }
 }
 void joyCallback(const sensor_msgs::Joy::ConstPtr& msg) {
     control_id = (*msg).buttons[0];
@@ -178,11 +202,29 @@ int main(int argc, char **argv) {
     footprint_pub_ = nh.advertise<visualization_msgs::MarkerArray>(topic + "/vis_footprint", 1);
     history_trajectory.resize(history_buff_size);
 
+    std::string path = ros::package::getPath("rmua_simulator")+"/map/map.yaml";
+    YAML::Node data = YAML::LoadFile(path);
+    int n = data["Rectangles"].size();
+    for (int i = 0; i < n; ++i) {
+        double x = data["Rectangles"][i]["rectangle"]["x"].as<double>();
+        double y = data["Rectangles"][i]["rectangle"]["y"].as<double>();
+        double a = data["Rectangles"][i]["rectangle"]["a"].as<double>()/180*M_PI;
+        double l = data["Rectangles"][i]["rectangle"]["l"].as<double>();
+        double w = data["Rectangles"][i]["rectangle"]["w"].as<double>();
+        double h = data["Rectangles"][i]["rectangle"]["h"].as<double>();
+        math::Vec2d center(x, y);
+        std::vector<math::Vec2d> points{{l/2, w/2}, {-l/2, w/2}, {-l/2, -w/2}, {l/2, -w/2}};
+        for (int j = 0; j < 4; ++j) {
+            points[j] = points[j].rotate(a) + center;
+        }
+        static_obs.emplace_back(points);
+    }
 
     nh.getParam("/length", length);
     nh.getParam("/width", width);
     nh.getParam("/height", height);
     nh.getParam("/show_mesh", show_mesh);
+    nh.getParam("/check_collision", enable_collision_check);
 
     nh.param("max_vel", joy_vel_coeff, 2.0);
     nh.param("max_yaw", joy_omega_coeff, 2.0);

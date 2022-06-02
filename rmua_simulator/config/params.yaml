@@ -14,3 +14,4 @@ update_pose_rate: 2000
 ttc: 0.05
 
 show_mesh: 1
+check_collision: 1

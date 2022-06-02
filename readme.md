@@ -21,6 +21,7 @@ OsqpEigen
 g2o
 glog
 gflags
+yaml-cpp
 ```
 Python
 ```

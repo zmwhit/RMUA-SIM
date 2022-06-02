@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
     ros::Publisher dilate_map_pub = nh.advertise<nav_msgs::OccupancyGrid>("/dilate_map", 1);
     ros::Publisher dynamic_map_pub = nh.advertise<nav_msgs::OccupancyGrid>("/dynamic_map", 1);
     ros::Publisher static_wall_pub = nh.advertise<visualization_msgs::MarkerArray>("/static_wall", 1);
+
     std::vector<ros::Subscriber> pose_sub_set_;
     for (int i = 0; i < 4; ++i) {
         std::string topic = "/robot_" + std::to_string(i) + "/position";
@@ -116,9 +117,9 @@ int main(int argc, char **argv) {
     wall.header.frame_id = "map";
     wall.ns = "LINE_LIST";
     wall.type = visualization_msgs::Marker::LINE_LIST;
-    wall.scale.x = static_map.info.resolution*1.1;
-    wall.scale.y = static_map.info.resolution*1.1;
-    wall.scale.z = static_map.info.resolution*1.1;
+    wall.scale.x = static_map.info.resolution*1.05;
+    wall.scale.y = static_map.info.resolution*1.05;
+    wall.scale.z = static_map.info.resolution*1.05;
     wall.color.a = 1.0;
     wall.color.r = wall.color.g = wall.color.b = 0.3;
     wall.pose = static_map.info.origin;
