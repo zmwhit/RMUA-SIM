@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     double control_pub_rate = 1000;
     double goal_dist_tol = 0.1;
     double goal_vel_tol = 0.1;
-    double plan_rate = 40;
+    double plan_rate = 50;
 
     double path_opti_w_smooth = 10.0;
     double path_opti_w_ref = 0.5;
