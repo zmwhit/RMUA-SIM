@@ -36,6 +36,7 @@ private:
     int project;
     int n;
     int n_send;
+    int n_left;
     double max_s;
     double s0;
     std::vector<double> s_list;

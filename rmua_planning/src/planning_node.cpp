@@ -162,8 +162,8 @@ int main(int argc, char **argv) {
     double plan_max_vel = 3.0;
     double plan_horizon = plan_max_vel/plan_max_accel*2;
 
-    double speed_acc_opti_w_s = 0.01;
-    double speed_acc_opti_w_v = 5.0;
+    double speed_acc_opti_w_s = 1.0;
+    double speed_acc_opti_w_v = 2.0;
     double speed_acc_opti_w_a = 0.01;
 
     double speed_dec_opti_w_s = 2.0;
@@ -175,8 +175,9 @@ int main(int argc, char **argv) {
     pos_kp = 2.0;
     ang_kp = 2.0;
 
-    bool random_walk = true;
+    bool random_walk = false;
     bool use_teb = false;
+
     ros::Subscriber map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/dynamic_map", 1, &MapCallBack);
     ros::Subscriber static_map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/static_map", 1, &StaticMapCallBack);
     ros::Subscriber goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &GoalCallBack);

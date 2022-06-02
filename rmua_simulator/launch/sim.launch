@@ -15,9 +15,9 @@
   </node>
   <node pkg="rmua_simulator" type="simulator" name="simulator1" output="log">
     <param name="agent_id" value="1" />
-    <param name="x" value="1.5" />
-    <param name="y" value="3.3" />
-    <param name="a" value="30" />
+    <param name="x" value="0.5" />
+    <param name="y" value="4" />
+    <param name="a" value="0.0" />
   </node>
   <node pkg="rmua_simulator" type="simulator" name="simulator2" output="log">
     <param name="agent_id" value="2" />

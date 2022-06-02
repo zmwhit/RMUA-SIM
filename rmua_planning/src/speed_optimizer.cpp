@@ -30,7 +30,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     }   
     if (project >= path.size() - 2)
         return false;
-    int n_left = path.size() - project;
+    n_left = path.size() - project;
     int degree = (n_left - 1 <= 5) ? n_left - 1 : 5;
     //B样条拟合路径
     b_spline = std::unique_ptr<tinyspline::BSpline>(new tinyspline::BSpline(n_left, 2, degree));
@@ -79,23 +79,23 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     theta0 = theta_list[0];
     //地图坐标系下的速度在路径切线上的投影速度vx, global2local
     init_v = std::min(max_v, std::max(vx0*std::cos(theta0) + vy0*std::sin(theta0), 0.0));
-    // init_v = 2;
+    
     double stop_s;
     if (init_v < plan_v) {
         stop_s = (plan_v*plan_v)/(2*max_a) + (plan_v*plan_v - init_v*init_v)/(2*max_a);
     } else {
         stop_s = (init_v*init_v)/(2*max_a);
     }
-    if (max_s <= stop_s) {
+    if (max_s <= stop_s || n >= n_left) {
+        n_left = (n >= n_left) ? n_left : n;
         stop = true;
-        target_v = plan_v;
+        target_v = 0;
         target_a = -max_a;
     } else {
         stop = false;
         target_v = plan_v;
         target_a = max_a;
     }
-    
     for (int i = 0; i < n; ++i) {
         init_traj.emplace_back(s_list[i], target_v, 0.0);
     }
@@ -153,16 +153,21 @@ void SpeedOptimizer::SetHession(const int n, Eigen::SparseMatrix<double>& hessio
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(m*n, m*n);
     Eigen::MatrixXd weight(m, m);
     if (stop) {
-        weight << dec_opti_w_s*2, 0, 0, 
+        weight << 0, 0, 0, 
                   0, dec_opti_w_v*2, 0,
                   0, 0, dec_opti_w_a*2;
         for (int i = 0; i < n; ++i) {
+            if (i >= n_left - 1)
+                weight(0, 0) = dec_opti_w_s*2; 
+            else
+                weight(0, 0) = 0; 
             H.block(m*i, m*i, m, m) += weight;
         }
         hession = H.sparseView();
         gradient = Eigen::VectorXd::Zero(m*n);
         for (int i = 0; i < n; ++i) {
-            gradient(m*i) = -2*dec_opti_w_s*max_s;
+            if (i >= n_left - 1)
+                gradient(m*i) = -2*dec_opti_w_s*max_s;
             gradient(m*i + 1) = -2*dec_opti_w_v*target_v;
         } 
     } else {
@@ -215,11 +220,12 @@ void SpeedOptimizer::SetConstrains(const int n, Eigen::SparseMatrix<double>& lin
     A.coeffRef(num_kinematic + num_bound, 0) = A.coeffRef(num_kinematic + num_bound + 1, 1) = 1;
     lower_bound(num_kinematic + num_bound) = upper_bound(num_kinematic + num_bound) = 0;
     lower_bound(num_kinematic + num_bound + 1) = upper_bound(num_kinematic + num_bound + 1) = init_v;
-    // if (stop) {
-    //     A.coeffRef(num_kinematic + num_bound + 2, m*(n-1)) = A.coeffRef(num_kinematic + num_bound + 3,  m*(n-1)+1) = 1;
-    //     lower_bound(num_kinematic + num_bound + 2) = upper_bound(num_kinematic + num_bound + 2) = max_s;
-    //     lower_bound(num_kinematic + num_bound + 3) = upper_bound(num_kinematic + num_bound + 3) = 0;
-    // } 
+    if (stop) {
+        // A.coeffRef(num_kinematic + num_bound + 2, m*(n-1)) = 1;
+        A.coeffRef(num_kinematic + num_bound + 3,  m*(n-1)+1) = 1;
+        // lower_bound(num_kinematic + num_bound + 2) = upper_bound(num_kinematic + num_bound + 2) = max_s;
+        lower_bound(num_kinematic + num_bound + 3) = upper_bound(num_kinematic + num_bound + 3) = 0;
+    } 
     // std::cout << A << std::endl;
     liner_constrains = A.sparseView();
 }

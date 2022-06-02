@@ -141,6 +141,7 @@ void Visualization::drawLine(int id, std::vector<geometry_msgs::PoseStamped>& po
     if (poses.empty()) return;
     visualization_msgs::Marker msg; 
     msg.id = id;
+    msg.header.seq = 0;
     msg.header.frame_id = frame;
     msg.header.stamp = ros::Time::now();
     msg.action = visualization_msgs::Marker::MODIFY;
@@ -208,7 +209,7 @@ void Visualization::drawRoundsOnPolygon(int id, std::vector<geometry_msgs::PoseS
     drawLine(id + 1, poses, height, size, c, alpha); 
 }
 void Visualization::Init(ros::NodeHandle& node, std::string topic) {
-    vis_pub = node.advertise<visualization_msgs::MarkerArray>(topic, 10);
+    vis_pub = node.advertise<visualization_msgs::MarkerArray>(topic, 1);
 }
 void Visualization::Trigger() {
     mutex.lock();
