@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
                 for (int k = 1; k < 4; ++k) {
                     double x_ = dynamic_obs[k].pose.position.x;
                     double y_ = dynamic_obs[k].pose.position.y;
-                    if (x_ > 0 && y > 0 && std::hypot(x - x_, y - y_) < 0.7) {
+                    if (x_ > 0 && y > 0 && std::hypot(x - x_, y - y_) <= 0.8) {
                         dynamic_map.data[cnt] = (int8_t)100;
                     }
                 }
