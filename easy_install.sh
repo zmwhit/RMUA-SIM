@@ -98,7 +98,9 @@ install_protobuf() {
     fi
     sudo ldconfig 
 }
-
+install_matplotlibcpp() {
+    sudo apt-get install python-matplotlib python-numpy python2.7-dev
+}
 main() {
     echo ${REPO_DIR}
     # install_benchmark

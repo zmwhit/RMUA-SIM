@@ -9,7 +9,7 @@ decision-making and plannning simulator for [RMUA](https://www.robomaster.com/zh
 There is a hierarchical motion planner in [rmua_planning](rmua_planning) feature by:
 - Motion mode managed using FSM
 - Shorterst path searched using 2D Astar 
-- Smooth path optimization using QP
+- Path optimization using QP to improve smoothness
 - Speed optimization using QP to improve movement efficiency
 - Glog for recording data
 - Matplotlibcpp for online visualizing wave data
