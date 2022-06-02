@@ -17,69 +17,81 @@ SpeedOptimizer::SpeedOptimizer(const Eigen::Vector3d& acc_opti_w, const Eigen::V
 }
 bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const std::vector<geometry_msgs::PoseStamped>& path, const nav_msgs::Odometry& odom, 
                           const double plan_t, const double plan_dt, const double plan_v) {
-    if (path.empty())
+    int n_path = path.size();
+    if (n_path <= 1)
         return false;
     //以最近点为投影点开始纵向规划
     double dis = DBL_MAX;
-    for (int i = 0; i < path.size(); ++i) {
+    for (int i = 0; i < n_path; ++i) {
         double d = Helper::getDistance(path[i], current_point);
         if (d < dis) {
             dis = d;
             project = i;
         }
     }   
-    if (project >= path.size() - 2)
-        return false;
-    n_left = path.size() - project;
-    int degree = (n_left - 1 <= 5) ? n_left - 1 : 5;
-    //B样条拟合路径
-    b_spline = std::unique_ptr<tinyspline::BSpline>(new tinyspline::BSpline(n_left, 2, degree));
-    std::vector<tinyspline::real> ctrlp_raw = b_spline->controlPoints();
-    for (int i = project; i < path.size(); ++i) {
-        int j = i - project;
-        ctrlp_raw[2*j + 0] = path[i].pose.position.x;
-        ctrlp_raw[2*j + 1] = path[i].pose.position.y;
-    }
-    b_spline->setControlPoints(ctrlp_raw);
-    auto b_spline_1d = b_spline->derive();
     //滚动时域长度
     t = plan_t;
     //时间步长
     dt = plan_dt;
     //优化点数量
     n = t/dt + 1;
-    //B样条采样
-    double delta_s = 1.0/(n - 1);
-    std::vector<double> x_list(n), y_list(n), theta_list(n);
-    for (int i = 0; i < n; ++i) {
-        auto result = b_spline->eval(i*delta_s).result();
-        auto result1d = b_spline_1d.eval(i*delta_s).result();
-        x_list[i] = result[0];
-        y_list[i] = result[1];
-        theta_list[i] = std::atan2(result1d[1], result1d[0]);
-    }
     //第一点的纵坐标
     s0 = 0;
     //最后一个点的纵坐标
     max_s = 0;
-    s_list.clear();
-    s_list.emplace_back(s0);
-    for (int i = 0; i < n - 1; ++i) {
-        max_s += std::hypot(x_list[i+1] - x_list[i], y_list[i+1] - y_list[i]);
-        s_list.emplace_back(max_s);
+
+    std::vector<double> x_list(n), y_list(n), theta_list(n), s_list(n);
+    n_left = n_path - project;
+    if (n_left <= 1) {
+        return false;
+    } else if (n_left <= 2) {
+        double x0 = current_point.pose.position.x;
+        double y0 = current_point.pose.position.y;
+        double x1 = path[n_path-1].pose.position.x;
+        double y1 = path[n_path-1].pose.position.y;     
+        theta0 = std::atan2(y1 - y0, x1 - x0);  
+        max_s = std::hypot(y1 - y0, x1 - x0);
+        // for (int i = 0; i < n; ++i) {
+
+        // }
+    } else {
+        int degree = (n_left - 1 <= 5) ? n_left - 1 : 5;
+        //B样条拟合路径
+        b_spline = std::unique_ptr<tinyspline::BSpline>(new tinyspline::BSpline(n_left, 2, degree));
+        std::vector<tinyspline::real> ctrlp_raw = b_spline->controlPoints();
+        for (int i = project; i < path.size(); ++i) {
+            int j = i - project;
+            ctrlp_raw[2*j + 0] = path[i].pose.position.x;
+            ctrlp_raw[2*j + 1] = path[i].pose.position.y;
+        }
+        b_spline->setControlPoints(ctrlp_raw);
+        auto b_spline_1d = b_spline->derive();
+        //B样条采样
+        double delta_s = 1.0/(n - 1);
+        for (int i = 0; i < n; ++i) {
+            auto result = b_spline->eval(i*delta_s).result();
+            auto result1d = b_spline_1d.eval(i*delta_s).result();
+            x_list[i] = result[0];
+            y_list[i] = result[1];
+            theta_list[i] = std::atan2(result1d[1], result1d[0]);
+        }
+        //路径的切线方向
+        theta0 = theta_list[0];
+        //纵坐标序列
+        s_list.emplace_back(s0);
+        for (int i = 0; i < n - 1; ++i) {
+            max_s += std::hypot(x_list[i+1] - x_list[i], y_list[i+1] - y_list[i]);
+            s_list.emplace_back(max_s);
+        }
     }
-    //车体坐标系下的vx和vy
-    double vx0_ = odom.twist.twist.linear.x;
-    double vy0_ = odom.twist.twist.linear.y;
+    
     //地图坐标系下的vx和vy，local2global
     double theta = tf::getYaw(current_point.pose.orientation);
-    double vx0 = vx0_*std::cos(theta) - vy0_*std::sin(theta);
-    double vy0 = vx0_*std::sin(theta) + vy0_*std::cos(theta);
-    //路径的切线方向
-    theta0 = theta_list[0];
+    double vx0 = odom.twist.twist.linear.x*std::cos(theta) - odom.twist.twist.linear.y*std::sin(theta);
+    double vy0 = odom.twist.twist.linear.x*std::sin(theta) + odom.twist.twist.linear.y*std::cos(theta);
     //地图坐标系下的速度在路径切线上的投影速度vx, global2local
     init_v = std::min(max_v, std::max(vx0*std::cos(theta0) + vy0*std::sin(theta0), 0.0));
-    
+
     double stop_s;
     if (init_v < plan_v) {
         stop_s = (plan_v*plan_v)/(2*max_a) + (plan_v*plan_v - init_v*init_v)/(2*max_a);
@@ -96,9 +108,9 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
         target_v = plan_v;
         target_a = max_a;
     }
-    for (int i = 0; i < n; ++i) {
-        init_traj.emplace_back(s_list[i], target_v, 0.0);
-    }
+    // for (int i = 0; i < n; ++i) {
+    //     init_traj.emplace_back(s_list[i], target_v, 0.0);
+    // }
     return true;
 }
 void SpeedOptimizer::visualzie() {
@@ -246,11 +258,11 @@ bool SpeedOptimizer::Optimize() {
     dual_variables.setZero();
     primal_variables.resize(3*n);
     primal_variables.setZero();
-    for (int i = 0; i < n; ++i) {
-        primal_variables(3*i) = init_traj[i](0);
-        primal_variables(3*i + 1) = init_traj[i](1);
-        primal_variables(3*i + 2) = init_traj[i](2);
-    } 
+    // for (int i = 0; i < n; ++i) {
+    //     primal_variables(3*i) = init_traj[i](0);
+    //     primal_variables(3*i + 1) = init_traj[i](1);
+    //     primal_variables(3*i + 2) = init_traj[i](2);
+    // } 
     SetHession(n, hessian, gradient);
     SetConstrains(n, linearMatrix, lowerBound, upperBound);
     solver.data()->setHessianMatrix(hessian);
@@ -260,7 +272,7 @@ bool SpeedOptimizer::Optimize() {
     if (!solver.initSolver()) {
         return false;
     }
-    solver.setWarmStart(primal_variables, dual_variables);
+    // solver.setWarmStart(primal_variables, dual_variables);
     auto result = solver.solveProblem();
     double t2 = std::clock();
     const Eigen::VectorXd& solution = solver.getSolution();

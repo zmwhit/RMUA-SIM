@@ -31,4 +31,6 @@
     <param name="y" value="4.0" />
     <param name="a" value="180.0" />
   </node>
+
+  <node pkg="rmua_planning" type="planning_node" name="planning" output="screen"/>
 </launch>

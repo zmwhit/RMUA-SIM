@@ -149,10 +149,10 @@ int main(int argc, char **argv) {
     double speed_rate = 200;
     double control_pub_rate = 1000;
     double goal_dist_tol = 0.1;
-    double goal_vel_tol = 0.2;
+    double goal_vel_tol = 0.1;
     double plan_rate = 40;
 
-    double path_opti_w_smooth = 5.0;
+    double path_opti_w_smooth = 10.0;
     double path_opti_w_ref = 0.5;
     double path_opti_w_length = 10.0;
     double path_opti_xy_bound = 0.1;
@@ -163,10 +163,10 @@ int main(int argc, char **argv) {
     double plan_horizon = plan_max_vel/plan_max_accel*2;
 
     double speed_acc_opti_w_s = 1.0;
-    double speed_acc_opti_w_v = 2.0;
+    double speed_acc_opti_w_v = 2.5;
     double speed_acc_opti_w_a = 0.01;
 
-    double speed_dec_opti_w_s = 2.0;
+    double speed_dec_opti_w_s = 2.5;
     double speed_dec_opti_w_v = 0.1;
     double speed_dec_opti_w_a = 0.01;
     Eigen::Vector3d speed_w1(speed_acc_opti_w_s, speed_acc_opti_w_v, speed_acc_opti_w_a);
@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     pos_kp = 2.0;
     ang_kp = 2.0;
 
-    bool random_walk = false;
+    bool random_walk = true;
     bool use_teb = false;
 
     ros::Subscriber map_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/dynamic_map", 1, &MapCallBack);
@@ -273,11 +273,11 @@ int main(int argc, char **argv) {
             if (Helper::getDistance(current_pose, goal_pose) < res && 
                 std::hypot(current_odom.twist.twist.linear.x, current_odom.twist.twist.linear.y) < 5e-2) {
                 task_state = FSM_STATE::WAIT_TARGET;
+                LOG(INFO) << "wait for target";
             }
         }
         if (task_state == FSM_STATE::WAIT_TARGET) {
             ResetControl();
-            LOG(INFO) << "wait for target";
             if (random_walk) {
                 double x, y;
                 int map_x, map_y;

@@ -89,6 +89,7 @@ void ChassisKinematic::pub_odom(ros::Time timestamp) {
     } else {
         odom.twist.twist.linear.x = current_state.velocity_x;
         odom.twist.twist.linear.y = current_state.velocity_y;
+        odom.twist.twist.linear.z = std::hypot(current_state.velocity_x, current_state.velocity_y);
     }
 
     odom.twist.twist.angular.z = current_state.angular_velocity;
