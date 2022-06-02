@@ -17,7 +17,7 @@ SpeedOptimizer::SpeedOptimizer(const Eigen::Vector3d& acc_opti_w, const Eigen::V
 }
 bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const std::vector<geometry_msgs::PoseStamped>& path, const nav_msgs::Odometry& odom, 
                           const double plan_t, const double plan_dt, const double plan_v) {
-    if (path.size() <= 2)
+    if (path.empty())
         return false;
     //以最近点为投影点开始纵向规划
     double dis = DBL_MAX;
@@ -68,7 +68,6 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
         max_s += std::hypot(x_list[i+1] - x_list[i], y_list[i+1] - y_list[i]);
         s_list.emplace_back(max_s);
     }
-
     //车体坐标系下的vx和vy
     double vx0_ = odom.twist.twist.linear.x;
     double vy0_ = odom.twist.twist.linear.y;
@@ -80,7 +79,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     theta0 = theta_list[0];
     //地图坐标系下的速度在路径切线上的投影速度vx, global2local
     init_v = std::min(max_v, std::max(vx0*std::cos(theta0) + vy0*std::sin(theta0), 0.0));
-
+    // init_v = 2;
     double stop_s;
     if (init_v < plan_v) {
         stop_s = (plan_v*plan_v)/(2*max_a) + (plan_v*plan_v - init_v*init_v)/(2*max_a);
@@ -89,7 +88,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     }
     if (max_s <= stop_s) {
         stop = true;
-        target_v = 0;
+        target_v = plan_v;
         target_a = -max_a;
     } else {
         stop = false;

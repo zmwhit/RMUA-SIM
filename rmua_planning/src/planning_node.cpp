@@ -148,14 +148,13 @@ int main(int argc, char **argv) {
 
     double speed_rate = 200;
     double control_pub_rate = 1000;
-    double goal_dist_tol = 0.2;
+    double goal_dist_tol = 0.1;
     double goal_vel_tol = 0.2;
-    int progress = 0;
     double plan_rate = 40;
 
     double path_opti_w_smooth = 5.0;
     double path_opti_w_ref = 0.5;
-    double path_opti_w_length = 5.0;
+    double path_opti_w_length = 10.0;
     double path_opti_xy_bound = 0.1;
     Eigen::Vector3d path_w(path_opti_w_smooth, path_opti_w_ref, path_opti_w_length);
     double plan_target_vel = 2.5;
@@ -163,7 +162,7 @@ int main(int argc, char **argv) {
     double plan_max_vel = 3.0;
     double plan_horizon = plan_max_vel/plan_max_accel*2;
 
-    double speed_acc_opti_w_s = 0.1;
+    double speed_acc_opti_w_s = 0.01;
     double speed_acc_opti_w_v = 5.0;
     double speed_acc_opti_w_a = 0.01;
 
@@ -195,7 +194,8 @@ int main(int argc, char **argv) {
     AStarPlanner path_search(grid_map);
     PathSmoother path_smoother(path_w, path_opti_xy_bound);
     SpeedOptimizer speed_optimizer(speed_w1, speed_w2, plan_max_vel, plan_max_accel);
-    
+    int progress = 0;
+
     LOG(INFO) << "begin planning";
     ros::Rate rate(plan_rate);
     while (ros::ok()) { 
@@ -219,14 +219,14 @@ int main(int argc, char **argv) {
                 task_state = FSM_STATE::STOP;
             } else {
                 if (use_teb) {
-                    //TODO: add teb
+                    //TODO: fix teb
                     NlpPlanner teb_planner(nh, grid_map, 1.0/plan_rate, plan_max_vel, plan_max_accel);
                     if (teb_planner.SetInitTrajectory(global_path, current_odom, current_pose, progress)) {
                         teb_planner.SetObstacles();
                         if (teb_planner.OptimizeNLP()) {
                             double vx, vy, ax, ay;
                             teb_planner.getControl(vx, vy, ax, ay);
-                            teb_path = teb_planner.getOptimalPath();
+                        teb_path = teb_planner.getOptimalPath();
                             double theta = tf::getYaw(current_pose.pose.orientation);
                             SetControlSpeed(vx, vy, ax, ay, theta);                        
                         } else {
@@ -241,7 +241,10 @@ int main(int argc, char **argv) {
                     stitch_path = path_smoother.Stitcher(global_path, current_pose, progress);
                     if (path_smoother.Optimize(stitch_path)) {
                         smooth_path = path_smoother.getPath();
-                        fitting_path = path_smoother.BsplineFitting(smooth_path, res);
+                        if (smooth_path.size() <= 3)
+                            fitting_path = smooth_path;
+                        else
+                            fitting_path = path_smoother.BsplineFitting(smooth_path, res);
                         bool init = speed_optimizer.Init(current_pose, fitting_path, current_odom, plan_horizon, 1.0/plan_rate, plan_target_vel);
                         if (init) {
                             if (speed_optimizer.Optimize()) {

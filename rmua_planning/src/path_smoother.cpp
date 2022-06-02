@@ -99,8 +99,13 @@ std::vector<geometry_msgs::PoseStamped> PathSmoother::Stitcher(const std::vector
 }
 bool PathSmoother::Optimize(const std::vector<geometry_msgs::PoseStamped> &path) {
     n = path.size();
-    if (n <= 2) {
+    if (n <= 1)
         return false;
+    if (n > 1 && n <= 3) {
+        opti_path.resize(n);
+        for (int i = 0; i < n; ++i)
+            opti_path[i] = Eigen::Vector2d(path[i].pose.position.x, path[i].pose.position.y);
+        return true;
     }
     std::vector<std::vector<double>> ref_xy;
     for (int i = 0; i < n; ++i) {
