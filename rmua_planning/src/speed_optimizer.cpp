@@ -98,9 +98,9 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     } else {
         stop_s = (init_v*init_v)/(2*max_a);
     }
-    if (max_s <= stop_s || n >= n_left) {
-        n_left = (n >= n_left) ? n_left : n;
+    if (max_s <= stop_s) {
         stop = true;
+        n_left = (n >= n_left) ? n_left : n;
         target_v = 0;
         target_a = -max_a;
     } else {
@@ -108,9 +108,9 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
         target_v = plan_v;
         target_a = max_a;
     }
-    // for (int i = 0; i < n; ++i) {
-    //     init_traj.emplace_back(s_list[i], target_v, 0.0);
-    // }
+    for (int i = 0; i < n; ++i) {
+        init_traj.emplace_back(max_s, target_v, target_a);
+    }
     return true;
 }
 void SpeedOptimizer::visualzie() {
@@ -246,6 +246,7 @@ bool SpeedOptimizer::Optimize() {
     OsqpEigen::Solver solver;
     solver.settings()->setWarmStart(true);
     solver.settings()->setVerbosity(false); 
+    solver.settings()->setTimeLimit(0.005);
     solver.data()->setNumberOfVariables(3*n);
     solver.data()->setNumberOfConstraints(3*(n - 1) + 3*n + 4);
     Eigen::SparseMatrix<double> hessian;
@@ -258,11 +259,11 @@ bool SpeedOptimizer::Optimize() {
     dual_variables.setZero();
     primal_variables.resize(3*n);
     primal_variables.setZero();
-    // for (int i = 0; i < n; ++i) {
-    //     primal_variables(3*i) = init_traj[i](0);
-    //     primal_variables(3*i + 1) = init_traj[i](1);
-    //     primal_variables(3*i + 2) = init_traj[i](2);
-    // } 
+    for (int i = 0; i < n; ++i) {
+        primal_variables(3*i) = init_traj[i](0);
+        primal_variables(3*i + 1) = init_traj[i](1);
+        primal_variables(3*i + 2) = init_traj[i](2);
+    } 
     SetHession(n, hessian, gradient);
     SetConstrains(n, linearMatrix, lowerBound, upperBound);
     solver.data()->setHessianMatrix(hessian);
@@ -272,7 +273,7 @@ bool SpeedOptimizer::Optimize() {
     if (!solver.initSolver()) {
         return false;
     }
-    // solver.setWarmStart(primal_variables, dual_variables);
+    solver.setWarmStart(primal_variables, dual_variables);
     auto result = solver.solveProblem();
     double t2 = std::clock();
     const Eigen::VectorXd& solution = solver.getSolution();
