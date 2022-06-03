@@ -90,11 +90,17 @@ std::vector<geometry_msgs::PoseStamped> PathSmoother::Stitcher(const std::vector
             project = i;
         }
     }
-    stitch_path = {current_point};
-    for (int i = project + 1; i < path.size(); ++i) {
-        stitch_path.emplace_back(path[i]);
+    if (project == path.size() - 1) {
+        if (progess < project)
+            stitch_path = {current_point, path.back()};
+    } else {
+        stitch_path = {current_point};
+        for (int i = project + 1; i < path.size(); ++i) {
+            stitch_path.emplace_back(path[i]);
+        }
+        progess = project;        
     }
-    progess = project;
+
     return stitch_path;
 }
 bool PathSmoother::Optimize(const std::vector<geometry_msgs::PoseStamped> &path) {

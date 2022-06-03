@@ -116,7 +116,7 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
 void SpeedOptimizer::visualzie() {
     plt::figure_size(700, 700);
     while (ros::ok()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
         if (!opti_traj.empty()) {
             std::vector<double> t, s, v, a;
             for (int i = 0; i < opti_traj.size(); ++i) {
