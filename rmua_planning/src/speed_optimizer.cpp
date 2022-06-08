@@ -20,15 +20,16 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     int n_path = path.size();
     if (n_path <= 1)
         return false;
-    //以最近点为投影点开始纵向规划
-    double dis = DBL_MAX;
-    for (int i = 0; i < n_path; ++i) {
-        double d = Helper::getDistance(path[i], current_point);
-        if (d < dis) {
-            dis = d;
-            project = i;
-        }
-    }   
+    // //以最近点为投影点开始纵向规划
+    // double dis = DBL_MAX;
+    // for (int i = 0; i < n_path; ++i) {
+    //     double d = Helper::getDistance(path[i], current_point);
+    //     if (d < dis) {
+    //         dis = d;
+    //         project = i;
+    //     }
+    // }   
+
     //滚动时域长度
     t = plan_t;
     //时间步长
@@ -40,11 +41,12 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
     //最后一个点的纵坐标
     max_s = 0;
 
-    std::vector<double> x_list(n), y_list(n), theta_list(n), s_list(n);
-    n_left = n_path - project;
+    std::vector<double> x_list(n_path), y_list(n_path), theta_list(n_path), s_list(n_path);
+    // n_left = n_path - project;
+    n_left = n_path;
     if (n_left <= 1) {
         return false;
-    } else if (n_left <= 2) {
+    } else if (n_left <= 3) {
         double x0 = current_point.pose.position.x;
         double y0 = current_point.pose.position.y;
         double x1 = path[n_path-1].pose.position.x;
@@ -55,31 +57,32 @@ bool SpeedOptimizer::Init(const geometry_msgs::PoseStamped& current_point, const
 
         // }
     } else {
-        int degree = (n_left - 1 <= 5) ? n_left - 1 : 5;
-        //B样条拟合路径
-        b_spline = std::unique_ptr<tinyspline::BSpline>(new tinyspline::BSpline(n_left, 2, degree));
-        std::vector<tinyspline::real> ctrlp_raw = b_spline->controlPoints();
-        for (int i = project; i < path.size(); ++i) {
-            int j = i - project;
-            ctrlp_raw[2*j + 0] = path[i].pose.position.x;
-            ctrlp_raw[2*j + 1] = path[i].pose.position.y;
-        }
-        b_spline->setControlPoints(ctrlp_raw);
-        auto b_spline_1d = b_spline->derive();
+        // int degree = (n_left - 1 <= 5) ? n_left - 1 : 5;
+        // //B样条拟合路径
+        // b_spline = std::unique_ptr<tinyspline::BSpline>(new tinyspline::BSpline(n_left, 2, degree));
+        // std::vector<tinyspline::real> ctrlp_raw = b_spline->controlPoints();
+        // for (int i = project; i < path.size(); ++i) {
+        //     int j = i - project;
+        //     ctrlp_raw[2*j + 0] = path[i].pose.position.x;
+        //     ctrlp_raw[2*j + 1] = path[i].pose.position.y;
+        // }
+        // b_spline->setControlPoints(ctrlp_raw);
+        // auto b_spline_1d = b_spline->derive();
         //B样条采样
-        double delta_s = 1.0/(n - 1);
-        for (int i = 0; i < n; ++i) {
-            auto result = b_spline->eval(i*delta_s).result();
-            auto result1d = b_spline_1d.eval(i*delta_s).result();
-            x_list[i] = result[0];
-            y_list[i] = result[1];
-            theta_list[i] = std::atan2(result1d[1], result1d[0]);
+        // double delta_s = 1.0/(n - 1);
+        for (int i = 0; i < n_left; ++i) {
+            // auto result = b_spline->eval(i*delta_s).result();
+            // auto result1d = b_spline_1d.eval(i*delta_s).result();
+            x_list[i] = path[i].pose.position.x;
+            y_list[i] = path[i].pose.position.y;
+            // theta_list[i] = std::atan2(result1d[1], result1d[0]);
         }
         //路径的切线方向
-        theta0 = theta_list[0];
+        // theta0 = theta_list[0];
+        theta0 = std::atan2(y_list[1] - y_list[0], x_list[1] - x_list[0]);
         //纵坐标序列
         s_list.emplace_back(s0);
-        for (int i = 0; i < n - 1; ++i) {
+        for (int i = 0; i < n_path - 1; ++i) {
             max_s += std::hypot(x_list[i+1] - x_list[i], y_list[i+1] - y_list[i]);
             s_list.emplace_back(max_s);
         }

@@ -32,7 +32,7 @@ geometry_msgs::PoseStamped current_pose, goal_pose;
 nav_msgs::Odometry current_odom;
 double target_angle;
 double pos_kp, pos_kd, ang_kp, ang_kd;
-geometry_msgs::Twist cmd_vel_, cmd_;
+geometry_msgs::Twist global_cmd_vel_, local_cmd_vel_, cmd_vel_;
 ros::Time speed_time;
 
 std::mutex plan_mutex_;
@@ -62,6 +62,10 @@ void ClickPointCallBack(const geometry_msgs::PointStamped::ConstPtr& msg) {
 void PoseCallBack(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     current_pose = *msg;
 }
+void PoseOdomCallBack(const nav_msgs::Odometry::ConstPtr& msg) {
+    current_pose.header.stamp = (*msg).header.stamp;
+    current_pose.pose = (*msg).pose.pose;
+}
 void OdomCallBack(const nav_msgs::Odometry::ConstPtr& msg) {
     current_odom = *msg;
 }
@@ -69,46 +73,50 @@ void SpeedTrackTimer() {
     plan_mutex_.lock();
     ros::Time time = ros::Time::now();
     double dt = (time - speed_time).toSec();
-    cmd_vel_.linear.x = cmd_vel_.linear.x + dt*cmd_vel_.angular.x;
-    cmd_vel_.linear.y = cmd_vel_.linear.y + dt*cmd_vel_.angular.y;
+    local_cmd_vel_.linear.x = global_cmd_vel_.linear.x + dt*global_cmd_vel_.angular.x;
+    local_cmd_vel_.linear.y = global_cmd_vel_.linear.y + dt*global_cmd_vel_.angular.y;
+    double temp_x = local_cmd_vel_.linear.x;
+    double temp_y = local_cmd_vel_.linear.y;
+    double theta = tf::getYaw(current_pose.pose.orientation);
+    double cos_theta = std::cos(theta);
+    double sin_theta = std::sin(theta);
+    local_cmd_vel_.linear.x = temp_x*cos_theta + temp_y*sin_theta;
+    local_cmd_vel_.linear.y = -temp_x*sin_theta + temp_y*cos_theta;
     speed_time = time;
     plan_mutex_.unlock();
 }
 void ControlPubTimer() {
-    cmd_.linear.x = cmd_vel_.linear.x;
-    cmd_.linear.y = cmd_vel_.linear.y;
-    cmd_.angular.z = cmd_vel_.angular.z;
-    cmd_vel_pub_.publish(cmd_);
+    cmd_vel_.linear.x = local_cmd_vel_.linear.x;
+    cmd_vel_.linear.y = local_cmd_vel_.linear.y;
+    cmd_vel_.angular.z = global_cmd_vel_.angular.z;
+    cmd_vel_pub_.publish(cmd_vel_);
 }
 void ResetControl() {
     plan_mutex_.lock();
-    cmd_vel_.linear.x = 0;
-    cmd_vel_.linear.y = 0;
-    cmd_vel_.angular.x = 0;
-    cmd_vel_.angular.y = 0;
-    cmd_vel_.angular.z = 0; 
+    global_cmd_vel_.linear.x = 0;
+    global_cmd_vel_.linear.y = 0;
+    global_cmd_vel_.angular.x = 0;
+    global_cmd_vel_.angular.y = 0;
+    global_cmd_vel_.angular.z = 0; 
     plan_mutex_.unlock();
 }
-void SetControlSpeed(double vx, double vy, double ax, double ay, double theta) {
+void SetControlSpeed(double vx, double vy, double ax, double ay) {
     plan_mutex_.lock();
-    double cos_theta = std::cos(theta);
-    double sin_theta = std::sin(theta);
-    cmd_vel_.linear.x = vx*cos_theta + vy*sin_theta;
-    cmd_vel_.linear.y = -vx*sin_theta + vy*cos_theta;
-    cmd_vel_.angular.x = ax*cos_theta + ay*sin_theta;
-    cmd_vel_.angular.y = -ax*sin_theta + ay*cos_theta;
+    global_cmd_vel_.linear.x = vx;
+    global_cmd_vel_.linear.y = vy;
+    global_cmd_vel_.angular.x = ax;
+    global_cmd_vel_.angular.y = ay;
     plan_mutex_.unlock();
 }
 void SetControlYawRate(double w) {
     plan_mutex_.lock();
-    cmd_vel_.angular.z = w; 
+    global_cmd_vel_.angular.z = w; 
     plan_mutex_.unlock();
 }
 void PositionTrack(double goal_x, double goal_y, double x, double y) {
     double control_x = pos_kp*(goal_x - x);
     double control_y = pos_kp*(goal_y - y);
-    double theta = tf::getYaw(current_pose.pose.orientation);
-    SetControlSpeed(control_x, control_y, 0.0, 0.0, theta);
+    SetControlSpeed(control_x, control_y, 0.0, 0.0);
 }
 void AngleTrack(double goal_a, double a) {
     double angle_diff = Helper::NormalizeAngle(goal_a - a);
@@ -183,6 +191,7 @@ int main(int argc, char **argv) {
     ros::Subscriber goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &GoalCallBack);
     ros::Subscriber click_point_sub_ = nh.subscribe<geometry_msgs::PointStamped>("/clicked_point", 1, &ClickPointCallBack);
     ros::Subscriber pose_sub_ = nh.subscribe<geometry_msgs::PoseStamped>(pos_topic, 1, &PoseCallBack);
+    // ros::Subscriber pose_sub_ = nh.subscribe<nav_msgs::Odometry>(pos_topic, 1, &PoseOdomCallBack);
     ros::Subscriber odom_sub_ = nh.subscribe<nav_msgs::Odometry>(odom_topic, 1, &OdomCallBack);
     ros::Timer speed_timer_ = nh.createTimer(ros::Duration(1.0/speed_rate), boost::bind(&SpeedTrackTimer));
     ros::Timer control_pub_timer_ = nh.createTimer(ros::Duration(1.0/control_pub_rate), boost::bind(&ControlPubTimer));
@@ -227,9 +236,8 @@ int main(int argc, char **argv) {
                         if (teb_planner.OptimizeNLP()) {
                             double vx, vy, ax, ay;
                             teb_planner.getControl(vx, vy, ax, ay);
-                        teb_path = teb_planner.getOptimalPath();
-                            double theta = tf::getYaw(current_pose.pose.orientation);
-                            SetControlSpeed(vx, vy, ax, ay, theta);                        
+                            teb_path = teb_planner.getOptimalPath();
+                            SetControlSpeed(vx, vy, ax, ay);                        
                         } else {
                             LOG(ERROR) << "teb optimize fail";
                             task_state = FSM_STATE::STOP;
@@ -249,9 +257,15 @@ int main(int argc, char **argv) {
                         bool init = speed_optimizer.Init(current_pose, fitting_path, current_odom, plan_horizon, 1.0/plan_rate, plan_target_vel);
                         if (init) {
                             if (speed_optimizer.Optimize()) {
-                                auto control = speed_optimizer.getControl();
-                                double theta = tf::getYaw(current_pose.pose.orientation);
-                                SetControlSpeed(control(0), control(1), control(2), control(3), theta);
+                                auto lon_track = speed_optimizer.getControl();
+                                // auto match_point = path_smoother.getMatchPoint();
+                                // double dy = match_point.pose.position.y - current_pose.pose.position.y;
+                                // double dx = match_point.pose.position.x - current_pose.pose.position.x;
+                                // double lat_error = std::hypot(dx, dy);
+                                // double dtheta = std::atan2(dy, dx);
+                                // lon_track(0) += lat_error*std::cos(dtheta);
+                                // lon_track(1) += lat_error*std::sin(dtheta);
+                                SetControlSpeed(lon_track(0), lon_track(1), lon_track(2), lon_track(3));
                             } else {
                                 LOG(ERROR) << "speed optimize fail";
                                 task_state = FSM_STATE::STOP;         

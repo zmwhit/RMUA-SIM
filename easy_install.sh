@@ -98,6 +98,10 @@ install_protobuf() {
     fi
     sudo ldconfig 
 }
+install_conda() {
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    bash miniconda.sh
+}
 install_matplotlibcpp() {
     sudo apt-get install python-matplotlib python-numpy python2.7-dev
 }
@@ -109,6 +113,9 @@ main() {
     
     # install_osqp_eigen
     # install_g2o
+
+    # install_conda
+    # install_matplotlibcpp
 }
 
 
